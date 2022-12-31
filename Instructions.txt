@@ -1,0 +1,9 @@
+Double click main.pyw to run the application
+If there are errors about uninstalled packages run the following commands in terminal:
+pip install numpy
+pip install tkinter
+
+Click pause/play to start or stop game
+Set game speed in generations per second (hz) with the text entry in the bottom right
+Fullscreen the application to see the maximum game space
+Click cells to toggle them on or off (The starting configuration runs a pretty interesting game already)
