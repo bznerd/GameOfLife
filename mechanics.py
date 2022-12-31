@@ -1,7 +1,8 @@
 import numpy as np
+from abc import ABC, abstractmethod
 
 #Parent class for implementation of the Game Of Life Logic
-class GameOfLifeParent:
+class GameOfLifeParent(ABC):
     #Init attributes with passed parameters
     def __init__(self,sizeX=100,sizeY=100,startConfig=[]):
         self.liveCells = startConfig
@@ -10,10 +11,19 @@ class GameOfLifeParent:
         self.sizeY = sizeY
         self.enabled = True
     
-    #Basic iteration method (More of an example or debugging feature)
+     ########## Abstract methods to be implemented by subclass ##########
+
+    #Perform a game iteration step
+    @abstractmethod
     def iterate(self, iterations=1):
-        if not self.enabled: return
-        self.gen += 1
+        pass
+
+    #Toggle a selection of cells
+    @abstractmethod
+    def toggleCells(self,cells):
+        pass
+
+    ########## Basic methods shared by all implemenations ##########
 
     #Get the current living cell population
     def getPop(self):
@@ -31,11 +41,7 @@ class GameOfLifeParent:
     def toggleEnabled(self):
         self.enabled = not self.enabled
 
-    #Toggle a selection of cells
-    def toggleCells(self,cells):
-        for cell in cells:
-            if cell not in self.liveCells: self.liveCells.append(cell)
-            else: self.liveCells.pop(self.liveCells.index([cell[0], cell[1]]))
+
 
 #Implementation scans a set sized grid to make game updates
 class GameOfLifeGridScan(GameOfLifeParent):
