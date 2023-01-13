@@ -4,12 +4,11 @@ from abc import ABC, abstractmethod
 #Parent class for implementation of the Game Of Life Logic
 class GameOfLifeParent(ABC):
     #Init attributes with passed parameters
-    def __init__(self,sizeX=100,sizeY=100,startConfig=[]):
+    def __init__(self, startConfig=[]):
         self.liveCells = startConfig
         self.gen = 0
-        self.sizeX = sizeX
-        self.sizeY = sizeY
         self.enabled = True
+        self.debug = False
     
      ########## Abstract methods to be implemented by subclass ##########
 
@@ -21,6 +20,11 @@ class GameOfLifeParent(ABC):
     #Toggle a selection of cells
     @abstractmethod
     def toggleCells(self,cells):
+        pass
+
+    #Toggle wrapper for binding to events
+    @abstractmethod
+    def toggleEvent(self, x, y):
         pass
 
     ########## Basic methods shared by all implemenations ##########
@@ -42,6 +46,87 @@ class GameOfLifeParent(ABC):
         self.enabled = not self.enabled
 
 
+#Implements GameOfLifeParent with infinite gamespace
+class GameOfLifeInfinite(GameOfLifeParent):
+    def __init__(self, startConfig=[]):
+        GameOfLifeParent.__init__(self, startConfig)
+        
+    #Run a game iteration
+    def iterate(self, iterations=1):
+        if not self.enabled: return
+        self.gen += 1
+
+        #List for changes
+        changeList = []
+
+        #Iterate over all living cells and run the update method on each
+        for cell in self.liveCells:
+            #Iterate over returned cell updates and add ones not already queued for updating
+            for update in self.updateCell(cell):
+                if update not in changeList: changeList.append(update)
+
+        #Apply updates
+        self.toggleCells(changeList)
+
+    #Toggle a list of cells between live/dead
+    def toggleCells(self, cells):
+        for cell in cells:
+            #Add a dead cell to the list of live cells
+            if cell not in self.liveCells: self.liveCells.append(cell)
+            #Remove a live cell from the list of live cells to make it dead
+            else: self.liveCells.pop(self.liveCells.index([cell[0], cell[1]]))
+        if self.debug: print(f"Toggled cells: {cells}")
+
+    def toggleEvent(self, x, y):
+        self.toggleCells([[x,y]])
+        
+    #Method to check a cell and its dead neighbors for their state in the next iteration
+    def updateCell(self, checkCell):
+        #Neighbor coordinates relative to current cell
+        cellMap = [[-1,1], [0,1], [1,1], [-1,0], [1,0], [-1,-1], [0,-1], [1,-1]]
+
+        #Cells that need to be toggled in next iteration
+        changeList = []
+        if self.checkCell(checkCell, True):
+            changeList.append(checkCell)
+        
+        #Create a list of dead neighbors to be checked for update
+        unlitNeighbors = []
+        for neighbor in cellMap:
+            #If the neighbor is not in the liveCell list add it to unlitNeighbors
+            if ([checkCell[0]+neighbor[0], checkCell[1]+neighbor[1]]) not in self.liveCells:
+                unlitNeighbors.append([checkCell[0]+neighbor[0], checkCell[1]+neighbor[1]])
+
+        #Add neighbors to change list if they should be toggled 
+        for neighbor in unlitNeighbors:
+            if self.checkCell(neighbor, False): changeList.append(neighbor)
+
+        #Return changes
+        return changeList
+
+    #Check a cell for if it should be dead or alive
+    def checkCell(self, cell, living):
+        #Neighbor coordinates relative to current cell
+        cellMap = [[-1,1], [0,1], [1,1], [-1,0], [1,0], [-1,-1], [0,-1], [1,-1]]
+       
+        
+        #Count number of living neighbors
+        litCells = 0 
+        for neighbor in cellMap:
+            if [cell[0]+neighbor[0], cell[1]+neighbor[1]] in self.liveCells:
+                litCells += 1
+
+        if self.debug: print(f"Cell: {cell}\nLit cells: {self.liveCells}\nAdjacent lit cells: {litCells}")
+
+        #Conditionals to return appropriate next state (see the four rules for the game and how they can be collapsed into three)
+        if living and (litCells == 2 or litCells == 3): return True
+        
+        if not living and litCells == 3: return True
+
+        else: return False
+
+        
+
 
 #Implementation scans a set sized grid to make game updates
 class GameOfLifeGridScan(GameOfLifeParent):
@@ -49,7 +134,9 @@ class GameOfLifeGridScan(GameOfLifeParent):
     debug = False
     #Run parent init and specialized init
     def __init__(self,sizeX=100,sizeY=100,startConfig=[]):
-        GameOfLifeParent.__init__(self,sizeX, sizeY, startConfig)
+        GameOfLifeParent.__init__(self, startConfig)
+        self.sizeX = sizeX
+        self.sizeY = sizeY
         self.grid = np.zeros([sizeX, sizeY], dtype=int)
         if startConfig:
             for coord in startConfig:
@@ -85,7 +172,7 @@ class GameOfLifeGridScan(GameOfLifeParent):
                     changeList.append([x, y, True])
                 else:
                     changeList.append([x, y, False])
-                if GameOfLifeGridScan.debug: print(f"Cell: {x}, {y} Lit cells: {check} Next State: {changeList[-1]}")
+                if self.debug: print(f"Cell: {x}, {y} Lit cells: {check} Next State: {changeList[-1]}")
                 
         #Update changed cells and change the population count
         for cell in changeList:
@@ -105,4 +192,8 @@ class GameOfLifeGridScan(GameOfLifeParent):
             if cell not in self.liveCells: self.liveCells.append(cell)
             else: self.liveCells.pop(self.liveCells.index([cell[0], cell[1]]))
             self.grid[cell[0],cell[1]] = not self.grid[cell[0],cell[1]]
-        if GameOfLifeGridScan.debug: print(f"Toggled cells: {cells}")
+        if self.debug: print(f"Toggled cells: {cells}")
+
+    def toggleEvent(self, x, y):
+        x, y = x+(self.sizeX//2), y+(self.sizeY//2)
+        toggleCells([[x, y]])
