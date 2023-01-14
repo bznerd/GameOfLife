@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import mechanics as mech
 from graphics import GameOfLifeGUI
 import time
