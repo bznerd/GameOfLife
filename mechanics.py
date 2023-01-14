@@ -87,7 +87,7 @@ class GameOfLifeInfinite(GameOfLifeParent):
 
         #Cells that need to be toggled in next iteration
         changeList = []
-        if self.checkCell(checkCell, True):
+        if not self.checkCell(checkCell, True):
             changeList.append(checkCell)
         
         #Create a list of dead neighbors to be checked for update
@@ -100,6 +100,9 @@ class GameOfLifeInfinite(GameOfLifeParent):
         #Add neighbors to change list if they should be toggled 
         for neighbor in unlitNeighbors:
             if self.checkCell(neighbor, False): changeList.append(neighbor)
+
+        
+        if self.debug: print(f"Updating Cell: {checkCell} Suggesting changes: {changeList}")
 
         #Return changes
         return changeList
